@@ -12,8 +12,42 @@ let plantPhaseDurationsMap = {};
 let seedImageMap = {};
 let seedNameImageMap = {};
 let landData = [];
+let landTypeData = []; // 土地类型加成表
 let calculatedRows = [];
 let currentRankTab = 'noFert';
+
+// 土地配置（根据UI输入）
+let landConfig = {
+    normal: 0,
+    red: 0,
+    black: 0,
+    gold: 0,
+    amethyst: 0
+};
+
+// 计算土地加成的加权聚合
+function getLandAggregates() {
+    const counts = landConfig;
+    const types = landTypeData;
+    let total = 0;
+    let yieldSum = 0;
+    let growPenaltySum = 0;
+    let expBonusSum = 0;
+    for (const t of types) {
+        const c = Math.max(0, Number(counts[t.id] || 0));
+        if (c <= 0) continue;
+        total += c;
+        yieldSum += c * t.yield;
+        growPenaltySum += c * t.growPenalty;
+        expBonusSum += c * t.expBonus;
+    }
+    return {
+        total,
+        avgYield: total > 0 ? yieldSum / total : 0,
+        avgGrowPenalty: total > 0 ? growPenaltySum / total : 0,
+        avgExpBonus: total > 0 ? expBonusSum / total : 0,
+    };
+}
 
 // 作物 emoji 映射
 const cropEmojis = {
@@ -46,24 +80,31 @@ function getCropEmoji(name) {
 function getCropImage(seedId, name, size = 32) {
     const fileName = seedImageMap[seedId] || seedNameImageMap[name];
     if (fileName) {
-        return `<img src="seed_images_named/${fileName}" alt="${name}" class="crop-img" loading="lazy" style="width:${size}px;height:${size}px;">`;
+        const imgUrl = `https://raw.githubusercontent.com/emjio/FarmCalc/main/seed_images_named/${encodeURIComponent(fileName)}`;
+        return `<img src="${imgUrl}" alt="${name}" class="crop-img" loading="lazy" style="width:${size}px;height:${size}px;" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='inline-block')">` +
+               `<span class="crop-emoji-fallback" style="font-size:${size * 0.9}px;display:none;vertical-align:middle;">${getCropEmoji(name)}</span>`;
     }
-    return `<span style="font-size:${size * 0.75}px;">${getCropEmoji(name)}</span>`;
+    return `<span style="font-size:${size * 0.9}px;display:inline-block;vertical-align:middle;">${getCropEmoji(name)}</span>`;
 }
 
 // ========== 初始化 ==========
 async function init() {
     try {
-        const [seedRes, plantRes, mappingRes, landRes] = await Promise.all([
+        const [seedRes, plantRes, mappingRes, landRes, landTypeRes] = await Promise.all([
             fetch('seed-shop-merged-export.json'),
             fetch('Plant.json'),
             fetch('seed_mapping.json'),
             fetch('Land.json'),
+            fetch('LandType.json').catch(() => ({ json: async () => ({ types: [] }) })),
         ]);
         const seedJson = await seedRes.json();
         const plantJson = await plantRes.json();
         const mappingJson = await mappingRes.json();
         landData = await landRes.json();
+        const landTypeJson = await landTypeRes.json();
+        landTypeData = landTypeJson.types || [];
+        // 真实24块地的升级成本表：{ "1": { "normal":{...}, "red":{...}, ... }, "2": {...}, ... }
+        window.__landTable = landTypeJson.lands || null;
 
         // 构建 seedId -> 图片文件名 映射 + name -> 图片文件名 映射
         seedImageMap = {};
@@ -95,6 +136,9 @@ async function init() {
 
         // 根据默认等级自动设置土地数
         updateLandsByLevel();
+
+        // 初始化土地配置输入
+        initLandConfig();
 
         // 监听等级输入变化，自动更新土地数
         const inputLevel = document.getElementById('inputLevel');
@@ -136,6 +180,85 @@ function updateLandsByLevel() {
     const level = Math.max(1, Math.min(100, parseInt(document.getElementById('inputLevel').value) || 1));
     const lands = getLandsByLevel(level);
     document.getElementById('inputLands').value = lands;
+    // 如果土地配置总量与已解锁数不一致，重设默认配置
+    const cfgTotal = Object.values(landConfig).reduce((s, v) => s + v, 0);
+    if (cfgTotal !== lands) {
+        const defaults = defaultLandConfig(lands, level);
+        const inputs = document.querySelectorAll('.land-type-input');
+        inputs.forEach(el => {
+            const t = el.dataset.type;
+            el.value = defaults[t] || 0;
+            landConfig[t] = defaults[t] || 0;
+        });
+        updateLandConfigSummary();
+    }
+}
+
+// 默认土地配置：按玩家当前等级从真实 lands 表里反推
+// 规则：每种土地类型，从地块1开始往后逐块查 lands[slot][type].level
+//      当查到的 level > 玩家等级时停止，此类型就到这块为止
+// 输出：{normal:N, red:R, black:B, gold:G, amethyst:A}
+function defaultLandConfig(totalLands, level) {
+    const lv = level || Math.max(1, parseInt(document.getElementById('inputLevel').value) || 27);
+    const table = window.__landTable || {};
+    const cfg = { normal: 0, red: 0, black: 0, gold: 0, amethyst: 0 };
+    const order = ['amethyst', 'gold', 'black', 'red', 'normal'];
+    // 先计算每种类型在当前等级下最多能开几块
+    const maxUp = {};
+    for (const t of order) {
+        let count = 0;
+        for (let slot = 1; slot <= totalLands; slot++) {
+            const slotData = table[String(slot)];
+            if (!slotData || !slotData[t]) break;
+            const lv_need = slotData[t].level || 0;
+            if (lv_need <= lv) count++;
+            else break;
+        }
+        maxUp[t] = count;
+    }
+    // 优先级分配：紫晶 > 金 > 黑 > 红 > 普通
+    let rest = totalLands;
+    for (const t of order) {
+        const take = Math.min(rest, maxUp[t] || 0);
+        cfg[t] = take;
+        rest -= take;
+    }
+    if (rest > 0) cfg.normal += rest;
+    return cfg;
+}
+
+function initLandConfig() {
+    const totalLands = Math.max(1, parseInt(document.getElementById('inputLands').value) || 18);
+    const level = Math.max(1, parseInt(document.getElementById('inputLevel').value) || 27);
+    const defaults = defaultLandConfig(totalLands, level);
+    const inputs = document.querySelectorAll('.land-type-input');
+    inputs.forEach(el => {
+        const t = el.dataset.type;
+        el.value = defaults[t] || 0;
+        landConfig[t] = defaults[t] || 0;
+        el.addEventListener('input', () => {
+            const v = Math.max(0, parseInt(el.value) || 0);
+            landConfig[t] = v;
+            updateLandConfigSummary();
+        });
+    });
+    updateLandConfigSummary();
+}
+
+function updateLandConfigSummary() {
+    const agg = getLandAggregates();
+    const elTotal = document.getElementById('landConfigTotal');
+    const elYield = document.getElementById('landConfigYield');
+    const elExp = document.getElementById('landConfigExp');
+    const elGrow = document.getElementById('landConfigGrow');
+    if (elTotal) {
+        elTotal.textContent = agg.total;
+        const unlocked = Math.max(1, parseInt(document.getElementById('inputLands').value) || 18);
+        if (agg.total !== unlocked) elTotal.classList.add('warn'); else elTotal.classList.remove('warn');
+    }
+    if (elYield) elYield.textContent = agg.avgYield.toFixed(2);
+    if (elExp)  elExp.textContent  = (agg.avgExpBonus >= 0 ? '+' : '') + Math.round(agg.avgExpBonus * 100) + '%';
+    if (elGrow) elGrow.textContent = '+' + Math.round(agg.avgGrowPenalty * 100) + '%';
 }
 
 function formatSec(sec) {
@@ -257,6 +380,12 @@ function buildRows(lands, level, organicReduceSec = 0) {
     const fertActionSec = lands * FERT_OPERATION_SEC_PER_LAND;
     const rows = [];
 
+    // 土地等级加成：考虑用户配置的高级别土地占比
+    const landAgg = getLandAggregates();
+    const expMul = 1 + landAgg.avgExpBonus;        // 经验加成（高级土地加经验）
+    const growMul = 1 + landAgg.avgGrowPenalty;    // 生长时间惩罚（高级土地生长更慢）
+    const yieldMul = landAgg.avgYield;             // 平均产量倍率（金币计算使用）
+
     for (const s of seedData) {
         const seedId = Number(s.seedId || s.seed_id) || 0;
         const name = s.name || `seed_${seedId}`;
@@ -269,22 +398,28 @@ function buildRows(lands, level, organicReduceSec = 0) {
         if (seedId <= 0 || growTimeSec <= 0) continue;
         if (level && requiredLevel > level) continue;
 
+        // 应用土地生长时间惩罚
+        const landGrowTimeSec = growTimeSec * growMul;
         const fullPhases = plantPhaseDurationsMap[seedId] || [];
         const reduceSec = plantPhaseMap[seedId] || 0;
-        const growTimeFert = Math.max(1, growTimeSec - reduceSec);
+        // 施肥减免也按比例缩放，保持各阶段比例一致
+        const scaledReduceSec = reduceSec * growMul;
+        const growTimeFert = Math.max(1, landGrowTimeSec - scaledReduceSec);
 
         // 普通肥后，按阶段模拟有机肥：每次只清当前阶段，进入下一阶段后需再次施肥
-        const phasesAfterNormal = fullPhases.length > 1 ? fullPhases.slice(1) : [growTimeFert];
+        const phasesAfterNormal = fullPhases.length > 1 ? fullPhases.slice(1).map(p => p * growMul) : [growTimeFert];
         const organicResult = calcOrganicByPhases(phasesAfterNormal, organicReduceSec);
         const growTimeOrganic = Math.max(1, growTimeFert - organicResult.reducedSec);
 
-        const cycleNoFert = growTimeSec + plantSecNoFert;
+        const cycleNoFert = landGrowTimeSec + plantSecNoFert;
         const cycleFert = growTimeFert + plantSecFert + fertActionSec; // 普通肥 1 次操作
         const cycleOrganic = growTimeOrganic + plantSecFert + fertActionSec + (organicResult.useCount * fertActionSec);
 
-        const expPerHourNoFert = (lands * exp / cycleNoFert) * 3600;
-        const expPerHourFert = (lands * exp / cycleFert) * 3600;
-        const expPerHourOrganic = (lands * exp / cycleOrganic) * 3600;
+        // 经验计算：每季收获的 exp 乘以经验土地加成
+        const expWithBonus = exp * expMul;
+        const expPerHourNoFert = (lands * expWithBonus / cycleNoFert) * 3600;
+        const expPerHourFert = (lands * expWithBonus / cycleFert) * 3600;
+        const expPerHourOrganic = (lands * expWithBonus / cycleOrganic) * 3600;
         const gainPercent = expPerHourNoFert > 0
             ? ((expPerHourFert - expPerHourNoFert) / expPerHourNoFert) * 100
             : 0;
@@ -292,16 +427,20 @@ function buildRows(lands, level, organicReduceSec = 0) {
             ? ((expPerHourOrganic - expPerHourFert) / expPerHourFert) * 100
             : 0;
 
+        // 金币计算：基础价格 + 产量倍率加成（仅作为参考，优先级低）
+        const goldPerCycle = price * yieldMul;
+
         rows.push({
             seedId,
             name,
             requiredLevel,
             price,
             exp,
-            growTimeSec,
-            growTimeStr: s.growTimeStr || formatSec(growTimeSec),
+            expWithBonus,
+            growTimeSec: landGrowTimeSec,
+            growTimeStr: formatSec(landGrowTimeSec),
             seasons,
-            reduceSec,
+            reduceSec: scaledReduceSec,
             growTimeFert,
             growTimeFertStr: formatSec(growTimeFert),
             growTimeOrganic,
@@ -319,6 +458,10 @@ function buildRows(lands, level, organicReduceSec = 0) {
             expPerDayOrganic: expPerHourOrganic * 24,
             gainPercent,
             organicGainPercent,
+            yieldMul,
+            goldPerCycle,
+            expMul,
+            growMul,
         });
     }
 
@@ -333,6 +476,14 @@ function calculate() {
     const useFert = document.getElementById('skillFertilizer').checked || useOrganic;
     const organicMinutes = Math.max(0, parseInt(document.getElementById('inputOrganicMinutes').value) || 0);
     const organicReduceSec = useOrganic ? organicMinutes * 60 : 0;
+
+    // 同步土地配置（如果用户还没动过 input、总数与解锁数不匹配，重新默认分配）
+    const cfgTotal = Object.values(landConfig).reduce((s, v) => s + v, 0);
+    if (cfgTotal === 0 || cfgTotal > lands) {
+        initLandConfig();
+    } else {
+        updateLandConfigSummary();
+    }
 
     calculatedRows = buildRows(lands, level, organicReduceSec);
 
@@ -427,6 +578,104 @@ function calculate() {
     }
     msg += `\n⚠️ 多季作物的计算方式暂未确定，结果仅供参考`;
     showToast(msg);
+
+    // 土地升级推荐
+    renderUpgradePlan(level, lands);
+}
+
+// ========== 土地升级推荐 ==========
+// 从真实 lands 表里查某类型第 N 块（slotIdx 从 0 起）的升级成本
+function getLandUpgradeCost(typeId, slotIdx, landTable) {
+    const slot = slotIdx + 1; // slotIdx 从 0 开始，slot 从 1 开始
+    const slotData = landTable && landTable[String(slot)];
+    if (!slotData || !slotData[typeId]) return null;
+    const c = slotData[typeId];
+    return {
+        slot,
+        level: c.level || 0,
+        goldW: c.gold_w || 0,
+        jindou: c.jindou || 0
+    };
+}
+
+function renderUpgradePlan(level, totalLands) {
+    const el = document.getElementById('cardUpgradePlan');
+    if (!el) return;
+
+    // 使用真实24块地数据
+    const landTable = window.__landTable;
+    if (!landTable) {
+        el.style.display = 'none';
+        return;
+    }
+
+    const goldW = Math.max(0, parseInt(document.getElementById('inputGoldW').value) || 0);
+    const jindou = Math.max(0, parseInt(document.getElementById('inputJindou').value) || 0);
+    const cfg = landConfig;
+
+    // 每种土地类型对应的"下一块待升级"
+    // 优先级：紫晶 > 金 > 黑 > 红 > 普通
+    const priority = ['amethyst', 'gold', 'black', 'red', 'normal'];
+    const plan = [];
+    for (const t of priority) {
+        const have = cfg[t] || 0;
+        if (have >= totalLands) continue;
+        const cost = getLandUpgradeCost(t, have, landTable);
+        if (!cost) continue;
+        plan.push({
+            typeId: t,
+            slotIdx: have,
+            ...cost
+        });
+    }
+
+    const html = [];
+    html.push(`<div class="upgrade-plan-header">`);
+    html.push(`<h3 class="card-title">🆙 土地升级推荐</h3>`);
+    html.push(`<p class="upgrade-plan-meta">当前 Lv${level} · 金币 <b>${goldW.toLocaleString()}</b> 万 · 金豆豆 <b>${jindou.toLocaleString()}</b></p>`);
+    html.push(`</div>`);
+
+    if (plan.length === 0) {
+        html.push(`<p class="upgrade-plan-empty">所有土地都已是最高级 🎉</p>`);
+    } else {
+        // 排序：高级土地优先
+        plan.sort((a, b) => {
+            const order = { amethyst: 0, gold: 1, black: 2, red: 3, normal: 4 };
+            return order[a.typeId] - order[b.typeId] || a.level - b.level;
+        });
+        html.push(`<div class="upgrade-plan-list">`);
+        for (const p of plan) {
+            const typeMeta = (landTypeData.find(t => t.id === p.typeId) || {});
+            const canLevel = level >= p.level;
+            const canGold = goldW >= p.goldW;
+            const canJindou = jindou >= p.jindou;
+            const can = canLevel && canGold && canJindou;
+            const cls = can ? 'can' : (canLevel ? 'cant-gold' : 'cant-level');
+            const badge = p.typeId === 'amethyst' ? '紫' : p.typeId === 'gold' ? '金' : p.typeId === 'black' ? '黑' : p.typeId === 'red' ? '红' : '普';
+            const badgeClass = p.typeId;
+            html.push(`<div class="upgrade-row ${cls}">`);
+            html.push(`<span class="land-type-badge ${badgeClass}">${badge}</span>`);
+            html.push(`<div class="upgrade-row-info">`);
+            html.push(`<div class="upgrade-row-title">${typeMeta.name || p.typeId} · 地块 #${p.slot}</div>`);
+            html.push(`<div class="upgrade-row-cond">`);
+            if (!canLevel) html.push(`<span class="cond fail">等级 ${p.level}（差 ${p.level - level}）</span>`);
+            else html.push(`<span class="cond ok">等级 ${p.level} ✓</span>`);
+            html.push(`<span class="cond ${canGold ? 'ok' : 'fail'}">金币 ${p.goldW.toLocaleString()} 万 ${canGold ? '✓' : `（差 ${(p.goldW - goldW).toLocaleString()}）`}</span>`);
+            if (p.jindou > 0) {
+                html.push(`<span class="cond ${canJindou ? 'ok' : 'fail'}">金豆 ${p.jindou} ${canJindou ? '✓' : `（差 ${p.jindou - jindou}）`}</span>`);
+            }
+            html.push(`</div>`);
+            html.push(`</div>`);
+            html.push(can ? `<span class="upgrade-row-tag ok">可升级</span>` : `<span class="upgrade-row-tag fail">不可</span>`);
+            html.push(`</div>`);
+        }
+        html.push(`</div>`);
+        html.push(`<p class="upgrade-plan-tip">💡 优先升级高级土地（紫晶>金>黑>红>普通），产量和经验加成更高。数据来自游戏内土地扩建面板截图，2026-07-22。</p>`);
+    }
+
+    el.innerHTML = html.join('');
+    el.style.display = '';
+    el.classList.add('fade-in');
 }
 
 // ========== 进度条 ==========
