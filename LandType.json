@@ -1,0 +1,39 @@
+{
+  "version": 4,
+  "updateTime": "2026-07-22 17:10:00",
+  "source": "微信小程序「指尖经典农场助手」- 土地扩建面板（用户提供9张截图，覆盖土地#3-#24完整升级数据）",
+  "comment": "完整24块地的升级数据，全部来自用户实际截图（#1、#2、#18、#19为此前已采集，其余#3-#17、#20-#24为本次补充）。【关键发现】#1-#18每多1块地+1级，#19起每多1块地+2级，紫晶则全程每多1块+3级。",
+  "types": [
+    { "id": "normal",   "name": "普通土地", "yield": 1, "growPenalty": 0,    "expBonus": 0,    "color": "#9e9e9e" },
+    { "id": "red",      "name": "红土地",   "yield": 2, "growPenalty": 0,    "expBonus": 0,    "color": "#e53935" },
+    { "id": "black",    "name": "黑土地",   "yield": 3, "growPenalty": 0.10, "expBonus": 0,    "color": "#212121" },
+    { "id": "gold",     "name": "金土地",   "yield": 4, "growPenalty": 0.20, "expBonus": 0.20, "color": "#ffb300" },
+    { "id": "amethyst", "name": "紫晶土地", "yield": 4, "growPenalty": 0.20, "expBonus": 0.25, "color": "#ab47bc", "mutationBonus": 1.20 }
+  ],
+  "lands": {
+    "1":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":28, "gold_w":20,   "jindou":0},    "black": {"level":40, "gold_w":60,   "jindou":0},    "gold": {"level":58, "gold_w":100,  "jindou":0},    "amethyst": {"level":90,  "gold_w":5000,  "jindou":500} },
+    "2":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":29, "gold_w":25,   "jindou":0},    "black": {"level":41, "gold_w":80,   "jindou":0},    "gold": {"level":59, "gold_w":140,  "jindou":0},    "amethyst": {"level":93,  "gold_w":7000,  "jindou":600} },
+    "3":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":30, "gold_w":30,   "jindou":0},    "black": {"level":42, "gold_w":100,  "jindou":0},    "gold": {"level":60, "gold_w":180,  "jindou":0},    "amethyst": {"level":96,  "gold_w":9000,  "jindou":720} },
+    "4":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":31, "gold_w":35,   "jindou":0},    "black": {"level":43, "gold_w":120,  "jindou":0},    "gold": {"level":61, "gold_w":220,  "jindou":0},    "amethyst": {"level":99,  "gold_w":11000, "jindou":860} },
+    "5":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":32, "gold_w":40,   "jindou":0},    "black": {"level":44, "gold_w":140,  "jindou":0},    "gold": {"level":62, "gold_w":260,  "jindou":0},    "amethyst": {"level":102, "gold_w":13000, "jindou":1030} },
+    "6":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":33, "gold_w":50,   "jindou":0},    "black": {"level":45, "gold_w":160,  "jindou":0},    "gold": {"level":63, "gold_w":300,  "jindou":0},    "amethyst": {"level":105, "gold_w":15000, "jindou":1230} },
+    "7":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":34, "gold_w":60,   "jindou":0},    "black": {"level":46, "gold_w":180,  "jindou":0},    "gold": {"level":64, "gold_w":340,  "jindou":0},    "amethyst": {"level":108, "gold_w":17000, "jindou":1470} },
+    "8":  { "normal": {"level":0,  "gold_w":0,    "jindou":0},    "red": {"level":35, "gold_w":70,   "jindou":0},    "black": {"level":47, "gold_w":220,  "jindou":0},    "gold": {"level":65, "gold_w":420,  "jindou":0},    "amethyst": {"level":111, "gold_w":19000, "jindou":1760} },
+    "9":  { "normal": {"level":9,  "gold_w":0,    "jindou":0},    "red": {"level":36, "gold_w":80,   "jindou":0},    "black": {"level":48, "gold_w":260,  "jindou":0},    "gold": {"level":66, "gold_w":500,  "jindou":0},    "amethyst": {"level":114, "gold_w":21000, "jindou":2110} },
+    "10": { "normal": {"level":11, "gold_w":3,    "jindou":0},    "red": {"level":37, "gold_w":90,   "jindou":0},    "black": {"level":49, "gold_w":300,  "jindou":0},    "gold": {"level":67, "gold_w":580,  "jindou":0},    "amethyst": {"level":117, "gold_w":23000, "jindou":2530} },
+    "11": { "normal": {"level":13, "gold_w":4,    "jindou":0},    "red": {"level":38, "gold_w":100,  "jindou":0},    "black": {"level":50, "gold_w":340,  "jindou":0},    "gold": {"level":68, "gold_w":660,  "jindou":0},    "amethyst": {"level":120, "gold_w":25000, "jindou":3030} },
+    "12": { "normal": {"level":15, "gold_w":6,    "jindou":0},    "red": {"level":39, "gold_w":110,  "jindou":0},    "black": {"level":51, "gold_w":380,  "jindou":0},    "gold": {"level":69, "gold_w":740,  "jindou":0},    "amethyst": {"level":123, "gold_w":27000, "jindou":3630} },
+    "13": { "normal": {"level":17, "gold_w":8,    "jindou":0},    "red": {"level":40, "gold_w":120,  "jindou":0},    "black": {"level":52, "gold_w":420,  "jindou":0},    "gold": {"level":70, "gold_w":820,  "jindou":0},    "amethyst": {"level":126, "gold_w":29000, "jindou":4350} },
+    "14": { "normal": {"level":19, "gold_w":10,   "jindou":0},    "red": {"level":41, "gold_w":130,  "jindou":0},    "black": {"level":53, "gold_w":460,  "jindou":0},    "gold": {"level":71, "gold_w":900,  "jindou":0},    "amethyst": {"level":129, "gold_w":31000, "jindou":5220} },
+    "15": { "normal": {"level":21, "gold_w":12,   "jindou":0},    "red": {"level":42, "gold_w":140,  "jindou":0},    "black": {"level":54, "gold_w":500,  "jindou":0},    "gold": {"level":72, "gold_w":980,  "jindou":0},    "amethyst": {"level":132, "gold_w":33000, "jindou":6260} },
+    "16": { "normal": {"level":23, "gold_w":14,   "jindou":0},    "red": {"level":43, "gold_w":150,  "jindou":0},    "black": {"level":55, "gold_w":540,  "jindou":0},    "gold": {"level":73, "gold_w":1060, "jindou":0},    "amethyst": {"level":135, "gold_w":35000, "jindou":7510} },
+    "17": { "normal": {"level":25, "gold_w":16,   "jindou":0},    "red": {"level":44, "gold_w":160,  "jindou":0},    "black": {"level":56, "gold_w":580,  "jindou":0},    "gold": {"level":74, "gold_w":1140, "jindou":0},    "amethyst": {"level":138, "gold_w":37000, "jindou":9010} },
+    "18": { "normal": {"level":27, "gold_w":18,   "jindou":0},    "red": {"level":45, "gold_w":170,  "jindou":0},    "black": {"level":57, "gold_w":620,  "jindou":0},    "gold": {"level":75, "gold_w":1220, "jindou":0},    "amethyst": {"level":141, "gold_w":39000, "jindou":10810} },
+    "19": { "normal": {"level":29, "gold_w":20,   "jindou":0},    "red": {"level":47, "gold_w":180,  "jindou":0},    "black": {"level":59, "gold_w":660,  "jindou":0},    "gold": {"level":77, "gold_w":1300, "jindou":0},    "amethyst": {"level":144, "gold_w":41000, "jindou":12970} },
+    "20": { "normal": {"level":31, "gold_w":22,   "jindou":0},    "red": {"level":49, "gold_w":190,  "jindou":0},    "black": {"level":61, "gold_w":700,  "jindou":0},    "gold": {"level":79, "gold_w":1380, "jindou":0},    "amethyst": {"level":147, "gold_w":43000, "jindou":15560} },
+    "21": { "normal": {"level":33, "gold_w":24,   "jindou":0},    "red": {"level":51, "gold_w":200,  "jindou":0},    "black": {"level":63, "gold_w":740,  "jindou":0},    "gold": {"level":81, "gold_w":1460, "jindou":0},    "amethyst": {"level":150, "gold_w":45000, "jindou":18670} },
+    "22": { "normal": {"level":35, "gold_w":26,   "jindou":0},    "red": {"level":53, "gold_w":210,  "jindou":0},    "black": {"level":65, "gold_w":780,  "jindou":0},    "gold": {"level":83, "gold_w":1540, "jindou":0},    "amethyst": {"level":153, "gold_w":47000, "jindou":22400} },
+    "23": { "normal": {"level":37, "gold_w":28,   "jindou":0},    "red": {"level":55, "gold_w":220,  "jindou":0},    "black": {"level":67, "gold_w":820,  "jindou":0},    "gold": {"level":85, "gold_w":1620, "jindou":0},    "amethyst": {"level":156, "gold_w":49000, "jindou":26880} },
+    "24": { "normal": {"level":39, "gold_w":30,   "jindou":0},    "red": {"level":57, "gold_w":230,  "jindou":0},    "black": {"level":69, "gold_w":860,  "jindou":0},    "gold": {"level":87, "gold_w":1700, "jindou":0},    "amethyst": {"level":159, "gold_w":51000, "jindou":32250} }
+  }
+}
